@@ -1,102 +1,116 @@
-# AWS Lambda S3 Access CloudFormation Templates
+# Terraform Assessment
 
-This repository contains CloudFormation templates to provision:
-- IAM policy for Lambda S3 access
-- S3 buckets for inbound and outbound data
-- Lambda functions to write to/read from S3
+This project provisions an AWS environment using Terraform. It creates two S3 buckets, two Lambda functions (for reading from and writing to the buckets), and the necessary IAM roles and policies.
 
 ---
 
-## File Structure
+## Folder Structure
 
 ```
-.
-├── create-iam-policy.yaml         # Defines IAM policy for Lambda S3 access
-├── create-s3-bucket.yaml         # Provisions inbound and outbound S3 buckets
-├── lambda-s3-access.yaml         # (Optional)  Lambda for both operations read and write
-└── README.md                     # This documentation
+terraform-assessment/
+├── lambda_read_outbound.py         # Lambda function: reads from outbound, writes to inbound bucket
+├── lambda_write_inbound.py         # Lambda function: writes to outbound bucket (assumed)
+├── main.tf                        # Main Terraform configuration
+├── variables.tf                   # (Assumed) Variable definitions for bucket names, etc.
 ```
+
+---
+
+## What This Terraform Code Does
+
+- **Creates two S3 buckets:**  
+  - `inbound` bucket (name from `var.inbound_bucket_name`)
+  - `outbound` bucket (name from `var.outbound_bucket_name`)
+
+- **Creates an IAM role and policy** for Lambda functions to access S3 and CloudWatch Logs.
+
+- **Packages and deploys two Lambda functions:**  
+  - `WriteToInboundbucketFunction` (from `lambda_write_inbound.py`)
+  - `ReadFromOutboundbucketFunction` (from `lambda_read_outbound.py`)
+
+- **Sets environment variables** for the Lambda functions to reference the S3 buckets.
+
+---
+
+## Prerequisites
+
+- [Terraform](https://www.terraform.io/downloads.html) installed
+- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) installed and configured
+- AWS IAM user with permissions to create S3 buckets, Lambda functions, and IAM roles/policies
+
+---
+
+## Setup Instructions
+
+1. **Clone this repository or copy the files to your workspace.**
+
+2. **Set up your AWS credentials**  
+   - Run `aws configure` and enter your Access Key, Secret Key, and region  
+   - Or, create `C:\Users\<your-username>\.aws\credentials` and `config` files as described above
+
+3. **Edit `variables.tf`** (if present) to set your bucket names:
+    ```hcl
+    variable "inbound_bucket_name" {
+      default = "your-inbound-bucket-name"
+    }
+    variable "outbound_bucket_name" {
+      default = "your-outbound-bucket-name"
+    }
+    ```
+
+4. **Initialize Terraform:**
+    ```
+    terraform init
+    ```
+
+5. **Apply the configuration:**
+    ```
+    terraform apply
+    ```
+    - Review the plan and type `yes` to proceed.
 
 ---
 
 ## Assumptions
 
-- AWS CLI configured with sufficient permissions to create IAM roles, policies, Lambda functions, and S3 buckets.
-- S3 bucket names provided are globally unique and conform to AWS naming rules.
-- The IAM role used by Lambda has the necessary permissions to access the specified S3 buckets.
-- Python 3.12 runtime is available for Lambda functions.
-- the required parameter values (bucket names, IAM role ARN) are provided during stack creation.
-
+- You have created and configured your AWS credentials with sufficient permissions.
+- The Lambda function code (`lambda_read_outbound.py` and `lambda_write_inbound.py`) is present in the root of the project.
+- The `variables.tf` file exists and defines `inbound_bucket_name` and `outbound_bucket_name`.
+- The IAM user running Terraform has permissions for:
+  - S3: `s3:CreateBucket`, `s3:PutObject`, `s3:GetObject`, `s3:DeleteBucket`
+  - IAM: `iam:CreateRole`, `iam:PutRolePolicy`, `iam:AttachRolePolicy`, `iam:PassRole`
+  - Lambda: `lambda:*`
+  - CloudWatch Logs: `logs:*`
+- The Lambda functions are compatible with Python 3.12 runtime.
 
 ## Further enhancements in future
--later this code can be further enhanced to process the file in outbound and write to inbound bucket after any fie processing logic is performed. now no file processing logic is incorporated. 
-- just copies existing file from outbound to inbound bucket.
--Trigger the Lambda only when a new file is uploaded to the outbound bucket, ensuring each file is processed once.
+later this code can be further enhanced to process the file in outbound and write to inbound bucket after any fie processing logic is performed.
+Trigger the Lambda only when a new file is uploaded to the outbound bucket, ensuring each file is processed once.
 To persist state, we can use DynamoDB, S3 object metadata, or S3 event-driven design. Lambda itself cannot remember state between runs.
+---
 
-## Template Descriptions
+## Troubleshooting
 
-### 1. `create-iam-policy.yaml`
-Creates an IAM policy granting Lambda functions permission to read from and write to the specified S3 buckets.  
-**Parameters:**  
-- `InboundBucketName`
-- `OutboundBucketName`
+- **Access Denied Errors:**  
+  Ensure your IAM user has the required permissions (see above).
 
-### 2. `create-s3-bucket.yaml`
-Creates two S3 buckets: one for inbound data and one for outbound data.  
-**Parameters:**  
-- `inboundbucketname`
-- `outboundbucketname`
+- **Credentials Not Found:**  
+  Make sure your AWS credentials are set up correctly in `~/.aws/credentials` or via environment variables.
 
-### 3. `lambda-s3-access.yaml`
-Deploys  Lambda function to:
--  write to the inbound bucket file named from-lambda.txt.
--  reads from the outbound bucket sample.txt which is uploaded already
-
-**Parameters:**  
-- `InboundBucketName`
-- `OutboundBucketName`
-- `LambdaRoleArn` (IAM role ARN for Lambda execution)
+- **Lambda Packaging:**  
+  The `archive_file` data source in Terraform will zip your `.py` files automatically.
 
 ---
 
-## Deployment Steps
+## Clean Up
 
-1. **Create S3 Buckets**
-   ```sh
-   aws cloudformation create-stack \
-     --stack-name s3-buckets \
-     --template-body file://create-s3-bucket.yaml \
-     --parameters ParameterKey=inboundbucketname,ParameterValue=<your-inbound-bucket> \
-                  ParameterKey=outboundbucketname,ParameterValue=<your-outbound-bucket>
-   ```
-
-2. **Create IAM Policy**
-   ```sh
-   aws cloudformation create-stack \
-     --stack-name lambda-s3-policy \
-     --template-body file://create-iam-policy.yaml \
-     --parameters ParameterKey=InboundBucketName,ParameterValue=<your-inbound-bucket> \
-                  ParameterKey=OutboundBucketName,ParameterValue=<your-outbound-bucket>
-   ```
-   Attach the created policy to your Lambda execution role.
-
-3. **Deploy Lambda Functions**
-   ```sh
-   aws cloudformation create-stack \
-     --stack-name lambda-s3-access \
-     --template-body file://lambda-s3-access.yaml \
-     --parameters ParameterKey=InboundBucketName,ParameterValue=<your-inbound-bucket> \
-                  ParameterKey=OutboundBucketName,ParameterValue=<your-outbound-bucket> \
-                  ParameterKey=LambdaRoleArn,ParameterValue=<your-lambda-role-arn>
-   ```
+To remove all resources created by this project:
+```
+terraform destroy
+```
 
 ---
 
-## Notes
+## Contact
 
-- Replace parameter values with your actual bucket names and IAM role ARN.
-- Ensure the IAM role used by Lambda has the policy created in step 2 attached.
-- The Lambda functions use environment variables to reference bucket names.
-
----"# terraform-code-assessment" 
+For questions or issues, please contact the project
