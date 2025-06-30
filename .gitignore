@@ -1,0 +1,4 @@
+.terraform/
+*.zip
+*.pyc
+__pycache__/".terraform/" 
