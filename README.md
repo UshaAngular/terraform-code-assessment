@@ -7,7 +7,7 @@ This project provisions an AWS environment using Terraform. It creates two S3 bu
 ## Folder Structure
 
 ```
-terraform-assessment/
+terraform-code-assessment/
 ├── lambda_read_outbound.py         # Lambda function: reads from outbound, writes to inbound bucket
 ├── lambda_write_inbound.py         # Lambda function: writes to outbound bucket (assumed)
 ├── main.tf                        # Main Terraform configuration
