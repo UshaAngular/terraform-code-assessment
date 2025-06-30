@@ -29,8 +29,9 @@ This repository contains CloudFormation templates to provision:
 
 
 ## Further enhancements in future
-later this code can be further enhanced to process the file in outbound and write to inbound bucket after any fie processing logic is performed.
-Trigger the Lambda only when a new file is uploaded to the outbound bucket, ensuring each file is processed once.
+-later this code can be further enhanced to process the file in outbound and write to inbound bucket after any fie processing logic is performed. now no file processing logic is incorporated. 
+- just copies existing file from outbound to inbound bucket.
+-Trigger the Lambda only when a new file is uploaded to the outbound bucket, ensuring each file is processed once.
 To persist state, we can use DynamoDB, S3 object metadata, or S3 event-driven design. Lambda itself cannot remember state between runs.
 
 ## Template Descriptions
